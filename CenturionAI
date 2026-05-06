@@ -933,8 +933,9 @@ def GetBabble(message,text):
         agent=AI.Agent(engine=el[ecounter],model=ml[ecounter],maxtokens=int(tl[ecounter]),temperature=bot['Temperature'],freqpenalty=bot['freqpenalty'],persona=bot['BotName'],maxmem=bot['MaxMemory'],userhome=userhome)
         agent.SetMemory(memory=f"{fn}.memory",timing=f"{fn}.timing")
         agent.Discord(gid,channel,nsfw)
-        fn=f"{dn}/{bot['BotName']}.{uid}"
-        agent.SetEmotionalScore(bot['EmotionClassifier'],f"{fn}.escore")
+        if os.path.exists(bot['EmotionClassifier']):
+            fn=f"{dn}/{bot['BotName']}.{uid}"
+            agent.SetEmotionalScore(bot['EmotionClassifier'],f"{fn}.escore")
 
         # Get the response
         response=agent.Response(input_text)
