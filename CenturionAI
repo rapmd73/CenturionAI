@@ -206,7 +206,7 @@ import DLMLocker as DLM
 
 # Active version
 
-Version="0.0.0.1.1"
+Version="0.0.0.1.300"
 
 # The running name of the program. Must be global and NEVER changing.
 
@@ -549,7 +549,7 @@ async def CheckCIMS(gid,bot,message,nsfw=False):
     classifier=bot['CIMSClassifier']
     text=f"Classify this: '{message.content}'"
     ### RESOLVE: Set up the AGENT reference
-    AImatch=await client.loop.run_in_executor(GlobalPool,AIClassifier,classifier,text,"no")
+    AImatch=await client.loop.run_in_executor(GlobalPool,RunClassifier,gid,nsfw,classifier,text,"no")
     print(AImatch)
     AImatch=AImatch.upper().replace('\n',' ').replace('.','').replace('*','').strip()
 
@@ -657,8 +657,6 @@ async def DetectPII(gid,bot,text):
             checksum += num
         return checksum % 10==0
 
-    print(text)
-
     # Regex patterns for various types of PII
     patterns={
         "SSN": r"\b\d{3}-\d{2}-\d{4}\b",
@@ -700,7 +698,7 @@ async def DetectPII(gid,bot,text):
                 txt=f'REGEX matched: {match} CONFIRM: {text}'
                 print("PII")
                 ### RESOLVE: Set up the AGENT reference
-                AImatch=await client.loop.run_in_executor(GlobalPool,AIClassifier,bot['PIIClassifier'],txt,"no")
+                AImatch=await client.loop.run_in_executor(GlobalPool,RunClassifier,gid,False,bot['PIIClassifier'],txt,"no")
                 print(AImatch)
                 if AImatch.lower()=='yes':
                     return f"AI/Phone Number: {match}"
@@ -907,8 +905,6 @@ def GetBabble(message,text):
         channel=str(message.channel.parent)
     bot=GetCenturionPersona(gid,channel,nsfw)
 
-    # Steering file need to be worked in a EKB
-
     # Process API for the request
 
     el=list(bot['Engine'].split(','))       # Engine list
@@ -942,7 +938,7 @@ def GetBabble(message,text):
         agent=AI.Agent(engine=el[ecounter],model=ml[ecounter],maxtokens=int(tl[ecounter]),temperature=bot['Temperature'],freqpenalty=bot['freqpenalty'],persona=bot['BotName'],maxmem=bot['MaxMemory'],userhome=userhome)
         agent.SetMemory(memory=f"{fn}.memory",timing=f"{fn}.timing")
         agent.Discord(gid,channel,nsfw)
-        if os.path.exists(bot['EmotionClassifier']):
+        if 'EmotionClassifier' in bot and os.path.exists(bot['EmotionClassifier']):
             fn=f"{dn}/{bot['BotName']}.{uid}"
             agent.SetEmotionalScore(bot['EmotionClassifier'],f"{fn}.escore")
 
@@ -959,6 +955,69 @@ def GetBabble(message,text):
 
     if response==None or response=='':
         return PickRandomResponse(bot['Broken'])
+
+    # Return the AI response
+    return response
+
+# Run the classifier
+
+@DF.function_trapper(None)
+def RunClassifier(gid,nsfw,instr,input,FailResp):
+    # Load the persona and memory files
+    # NSFW not allowed in threads directly, so find parent channel
+
+    # Question: Do we take info of NSFW state or force verify? Currebt is
+    # face value
+
+    bot=None
+    bot=GetCenturionPersona(gid,"None",Welcome=True)
+
+    # Process API for the request
+
+    el=list(bot['Engine'].split(','))       # Engine list
+    ec=len(el)                              # Engine list length
+    tl=list(bot['MaxTokens'].split(','))    # Max Tokens list
+    mt=len(tl)                              # Max Tokens list length
+    # Encoding alwayys takes priority over modem
+    if 'Encoding' in bot:
+        ml=list(bot['Encoding'].split(','))     # Encoding list
+        mc=len(ml)                              # Encoding list length
+    else:
+        ml=list(bot['Model'].split(','))        # Model list
+        mc=len(ml)                              # Model list length
+
+    # The number of models MUST equal the number of engines. 1 model per engine
+
+    if ec!=mc!=mt:
+        ErrorLog(f"Broke RC ((models/Encoding)!=engines!=MaxTokens): {sys.exc_info()[-1].tb_lineno}/{err}")
+        return FailResp
+
+    # Run through the engins/models until we have a response.
+
+    response=None
+    ecounter=0
+    while response==None and ecounter<ec:
+        userhome=f"{ConfigStorage}/{gid}"
+
+        # Run the classifier
+        agent=AI.Agent(engine=el[ecounter],model=ml[ecounter],maxtokens=int(tl[ecounter]),userhome=userhome)
+
+        # For classifier, there is NO channel and nsfw is irrelevant. This is
+        # required to get correct token file.
+
+        agent.Discord(gid,"None",False)
+        response=agent.AIClassifier(instr,input,FailResp)
+
+        if response==None:
+            ecounter+=1
+        else:
+            break
+
+    # check to see if we got a response. If not, don't save the
+    # memory, just return.
+
+    if response==None or response=='':
+        return FailResp
 
     # Return the AI response
     return response
@@ -2100,7 +2159,7 @@ async def on_message_edit(before, after):
 
     if leftFound and rightFound:
         ### RESOLVE: Set up the AGENT reference
-        ageMatch=await client.loop.run_in_executor(GlobalPool,AIClassifier,bot['AgeLEETClassifier'],txt,"no")
+        ageMatch=await client.loop.run_in_executor(GlobalPool,RunClassifier,after.guild.id,nsfw,bot['AgeLEETClassifier'],txt,"no")
         print(ageMatch)
         if ageMatch.lower()=='no':
             return
