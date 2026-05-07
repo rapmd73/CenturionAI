@@ -1032,7 +1032,6 @@ def RunClassifier(gid,nsfw,instr,input,FailResp):
 @DF.function_trapper(None)
 async def HandleOneMessage(request):
     try:
-#        with concurrent.futures.ThreadPoolExecutor() as pool:
         input_text=request['input']
         guild=client.get_guild(request['gid'])
         channel=await guild.fetch_channel(request['cid'])
@@ -1096,7 +1095,7 @@ async def HandleOneMessage(request):
                 PutNextRequest(guild.id,msg)
                 ResponseLock.Unlock()
             else:
-                ErrorLog("Lock failed Reput Message")
+                ErrorLog("Lock failed, reput Message")
     except Exception as err:
         ErrorLog(f"HandleOneMessage: {sys.exc_info()[-1].tb_lineno}/{err}")
 
