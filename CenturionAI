@@ -206,7 +206,7 @@ import DLMLocker as DLM
 
 # Active version
 
-Version="0.0.0.1.300"
+Version="0.0.0.1.301"
 
 # The running name of the program. Must be global and NEVER changing.
 
@@ -335,7 +335,6 @@ def CheckMessageURLs(gid,text):
     scamurls=FF.ReadFile2List(CenturionScamURLS)
 
     # Extract URLs from the message
-    print("##",gid)
     Tokens=FF.ReadTokens(gid,userhome=ConfigStorage)
 
     urls=WF.ExtractURLs(text)
@@ -550,7 +549,6 @@ async def CheckCIMS(gid,bot,message,nsfw=False):
     text=f"Classify this: '{message.content}'"
     ### RESOLVE: Set up the AGENT reference
     AImatch=await client.loop.run_in_executor(GlobalPool,RunClassifier,gid,nsfw,classifier,text,"no")
-    print(AImatch)
     AImatch=AImatch.upper().replace('\n',' ').replace('.','').replace('*','').strip()
 
     if AImatch!="NONE" and AImatch!='NO':
@@ -696,10 +694,8 @@ async def DetectPII(gid,bot,text):
         if match!=None:
             if "PIIClassifier" in bot:
                 txt=f'REGEX matched: {match} CONFIRM: {text}'
-                print("PII")
                 ### RESOLVE: Set up the AGENT reference
                 AImatch=await client.loop.run_in_executor(GlobalPool,RunClassifier,gid,False,bot['PIIClassifier'],txt,"no")
-                print(AImatch)
                 if AImatch.lower()=='yes':
                     return f"AI/Phone Number: {match}"
                 else:
@@ -1052,7 +1048,6 @@ async def HandleOneMessage(request):
             pchannel=message.channel.parent
             bot=GetCenturionPersona(guild.id,str(pchannel),pchannel.nsfw)
             nsfw=str(pchannel.nsfw)[0]
-            print(pchannel.nsfw,nsfw)
             # WTAF? Really? bots have to join a thread...
             if not message.channel.me:
                 await message.channel.join()
@@ -2160,7 +2155,6 @@ async def on_message_edit(before, after):
     if leftFound and rightFound:
         ### RESOLVE: Set up the AGENT reference
         ageMatch=await client.loop.run_in_executor(GlobalPool,RunClassifier,after.guild.id,nsfw,bot['AgeLEETClassifier'],txt,"no")
-        print(ageMatch)
         if ageMatch.lower()=='no':
             return
 
