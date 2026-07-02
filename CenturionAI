@@ -940,6 +940,7 @@ def GetBabble(message,text):
 
         # Get the response
         response=agent.Response(input_text)
+        agent=CF.Reclaimation(agent)
 
         if response==None:
             ecounter+=1
@@ -1003,6 +1004,7 @@ def RunClassifier(gid,nsfw,instr,input,FailResp):
 
         agent.Discord(gid,"None",False)
         response=agent.AIClassifier(instr,input,FailResp)
+        agent=CF.Reclaimation(agent)
 
         if response==None:
             ecounter+=1
@@ -1870,6 +1872,7 @@ async def autodelete_messages():
                         guild=client.get_guild(msg['gid'])              # Guild
                         channel=guild.get_channel(msg['cid'])           # Channel
                         DeleteList.remove(msg)
+                        CF.Reclaimation(DeleteList)
                         try:
                             message=await channel.fetch_message(msg['mid']) # Message
                             await message.delete()
@@ -2003,6 +2006,7 @@ async def track_ActiveUsers():
                     ActiveUsers[ac].remove(au)
                 else:
                     au[1]=time.time()
+    CF.Reclaimation(ActiveUsers)
 
     # Sweep all guilds
     for ag in list(ActiveJoins):
@@ -2010,6 +2014,7 @@ async def track_ActiveUsers():
         for au in list(ActiveJoins[ag]):
             if (current_time-au[1])>SlowwModeCooldown:
                 ActiveJoins[ag].remove(au)
+    CF.Reclaimation(ActiveJoins)
 
 ###
 ### Discord event functions
